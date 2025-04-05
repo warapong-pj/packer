@@ -1,0 +1,47 @@
+#cloud-config
+autoinstall:
+  version: 1
+
+  locale: en_US.UTF-8
+
+  keyboard:
+    layout: us
+
+  apt:
+    geoip: false
+    primary:
+      - arches: [default]
+        uri: https://mirrors.edge.kernel.org/ubuntu/
+    security:
+      - arches: [default]
+        uri: https://mirrors.edge.kernel.org/ubuntu/
+
+  ssh:
+    install-server: true
+    allow-pw: true
+
+  identity:
+    hostname: ubuntu2204
+    username: vagrant
+    password: <insert password hash here>
+
+  storage:
+    layout:
+      name: direct
+    swap:
+      size: 0
+
+  packages:
+    # Required for Hyper-V
+    - linux-cloud-tools-virtual
+
+  early-commands:
+    # Prevent Packer to connect to Ubiquity's installation environment
+    - systemctl stop ssh
+
+  late-commands:
+    - echo 'vagrant ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/99_vagrant
+    - chmod 440 /target/etc/sudoers.d/99_vagrant
+    - sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"$/GRUB_CMDLINE_LINUX_DEFAULT=="\1 net.ifnames=0 biosdevname=0"/g' /target/etc/default/grub
+    - sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=" net.ifnames/GRUB_CMDLINE_LINUX_DEFAULT="net.ifnames/g' /target/etc/default/grub
+    - curtin in-target --target=/target -- update-grub
